@@ -1,33 +1,57 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
 @theme {
-  /* Pak Suzuki Institutional Palette - Tailwind v4 Standard */
+  /* Colors */
   --color-suzuki-blue: #004098;
-  --color-suzuki-red: #ED1C24;
-  
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
+  --color-suzuki-dark: #002E6B;
+  --color-suzuki-light: #3370C1;
+  --color-suzuki-accent: #0056CC;
+
+  --color-primary-50: #f0f4ff;
+  --color-primary-100: #d9e2ff;
+  --color-primary-500: #004098;
+  --color-primary-600: #00337a;
+  --color-primary-700: #00265c;
+
+  /* Shadows */
+  --shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-premium: 0 10px 40px -10px rgba(0, 64, 152, 0.15);
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+
+  /* Fonts */
+  --font-sans: "Inter", "system-ui", "sans-serif";
+  --font-display: "Outfit", "sans-serif";
+
+  /* Animations & Keyframes */
+  --animate-fade-in: fadeIn 0.5s ease-out forwards;
+  --animate-slide-up: slideUp 0.4s ease-out forwards;
+  --animate-enter: enter 0.4s ease-out forwards;
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes slideUp {
+    0% { transform: translateY(10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes enter {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 }
 
 :root {
-  --bg-app: #f8fafc;
+  --bg-app: #f1f5f9;
   --bg-surface: #ffffff;
+  --bg-sidebar: #011627;
+  --accent-primary: #004098;
   --border-subtle: #e2e8f0;
-  --text-primary: #0f172a;
   
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   color-scheme: light;
-  color: var(--text-primary);
   background-color: var(--bg-app);
 }
 
@@ -35,37 +59,70 @@ body {
   margin: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  background-color: var(--bg-app);
 }
 
-/* Institutional Card System */
+h1, h2, h3, h4, .font-display {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Glassmorphism System */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Smart Admin Table System */
+.smart-table {
+  @apply w-full border-separate border-spacing-0;
+}
+
+.smart-table th {
+  @apply bg-slate-50/50 px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] border-b border-slate-100 first:rounded-tl-2xl last:rounded-tr-2xl;
+}
+
+.smart-table td {
+  @apply px-6 py-4 text-sm text-slate-600 border-b border-slate-50 transition-colors;
+}
+
+.smart-table tr:last-child td:first-child { @apply rounded-bl-2xl; }
+.smart-table tr:last-child td:last-child { @apply rounded-br-2xl; }
+.smart-table tr:hover td { @apply bg-slate-50/50; }
+
+/* Premium Card & Card Hover */
 .pro-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  @apply bg-white border border-slate-100 rounded-3xl transition-all duration-300 shadow-soft;
 }
 
 .pro-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  @apply shadow-premium -translate-y-1 border-suzuki-blue/10;
+}
+
+/* Status Badges */
+.badge {
+  @apply px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight;
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { 
+  background: #cbd5e1; 
+  border-radius: 20px;
+  border: 2px solid var(--bg-app);
+}
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Leaflet Professional Light Skin */
-.leaflet-container { background: #f1f5f9 !important; }
-.leaflet-voyager { filter: grayscale(100%) contrast(100%) brightness(100%); }
-
-/* Fade In Utility */
-.fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Sidebar Active State Utility */
+.nav-active {
+  @apply bg-suzuki-blue text-white shadow-lg shadow-suzuki-blue/30 scale-[1.02];
 }

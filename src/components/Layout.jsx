@@ -1,112 +1,173 @@
 import React from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   LayoutDashboard, 
   Users, 
-  Route as RouteIcon, 
   Bus,
   LogOut, 
   Search,
   Bell,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X,
+  ShieldCheck,
+  Settings
 } from 'lucide-react'
 
 const Layout = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+  const user = JSON.parse(localStorage.getItem('admin_user') || '{}')
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={18} /> },
-    { name: 'Employees', path: '/employees', icon: <Users size={18} /> },
-    { name: 'Fleet', path: '/vans', icon: <Bus size={18} /> },
-    { name: 'Routes', path: '/routes', icon: <RouteIcon size={18} /> },
+    { name: 'Overview', path: '/', icon: <LayoutDashboard size={20} /> },
+    { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
+    { name: 'Fleet Management', path: '/vans', icon: <Bus size={20} /> },
   ]
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
     localStorage.removeItem('admin_user')
-    window.location.href = '/login'
+    navigate('/login')
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-      {/* Institutional Sidebar */}
-      <aside className="w-64 bg-suzuki-blue fixed inset-y-0 left-0 z-50 flex flex-col shadow-xl">
-        <div className="p-8 pb-12 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
-            <span className="font-bold text-suzuki-blue text-2xl">S</span>
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900 overflow-x-hidden">
+      {/* Sidebar - Smart Admin Dark Skin */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-72 bg-[#0F172A] transform transition-transform duration-300 ease-in-out
+        lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="h-full flex flex-col p-6">
+          {/* Brand Logo */}
+          <div className="flex items-center gap-4 px-2 mb-10">
+            <div className="w-12 h-12 bg-suzuki-blue rounded-2xl flex items-center justify-center shadow-lg shadow-suzuki-blue/20 transform rotate-3 hover:rotate-0 transition-transform">
+              <ShieldCheck size={26} className="text-white" />
+            </div>
+            <div>
+              <h1 className="font-display font-extrabold text-xl text-white tracking-tight leading-none">SmartAdmin</h1>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1 block">Fleet Logistics</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <h1 className="font-bold text-white text-lg tracking-tight leading-none">PickupAdmin</h1>
-            <span className="text-[10px] text-white/60 font-bold uppercase tracking-widest mt-1">Fleet Center</span>
-          </div>
-        </div>
 
-        <nav className="flex-1 px-4 space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              className={({ isActive }) => `
-                flex items-center gap-3 px-4 py-3 rounded-lg transition-all border border-transparent
-                ${isActive 
-                  ? 'bg-white/10 text-white border-white/10 shadow-inner' 
-                  : 'text-white/70 hover:text-white hover:bg-white/5'}
-              `}
+          {/* Navigation */}
+          <nav className="flex-1 space-y-2">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-4 mb-4">Main Menu</p>
+            {navItems.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                className={({ isActive }) => `
+                  flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group
+                  ${isActive 
+                    ? 'bg-suzuki-blue text-white shadow-xl shadow-suzuki-blue/30' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                `}
+              >
+                <span className={`${location.pathname === item.path ? 'text-white' : 'group-hover:text-suzuki-light'} transition-colors`}>
+                  {item.icon}
+                </span>
+                <span className="font-semibold text-[14px]">{item.name}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Sidebar Footer */}
+          <div className="mt-auto pt-6 border-t border-slate-800">
+            <div className="bg-slate-800/40 rounded-3xl p-4 mb-4 border border-slate-700/50">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-suzuki-blue to-suzuki-light flex items-center justify-center text-white font-bold text-xs">
+                     ADM
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white leading-none">{user.username || 'Administrator'}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">System Controller</p>
+                  </div>
+               </div>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition-all font-bold text-sm"
             >
-              {item.icon}
-              <span className="font-semibold text-sm">{item.name}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-white/10">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/60 hover:text-white hover:bg-red-500/20 transition-all font-semibold text-sm"
-          >
-            <LogOut size={18} />
-            Sign Out
-          </button>
+              <LogOut size={20} />
+              Sign Out
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-64 min-h-screen flex flex-col">
-        {/* Corporate Header */}
-        <header className="h-20 bg-white border-b border-slate-200 px-8 flex justify-between items-center sticky top-0 z-40">
-          <div className="relative w-96 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-suzuki-blue transition-colors" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search Personnel Records..." 
-              className="w-full bg-slate-100 border-0 rounded-lg py-2.5 pl-12 pr-4 focus:ring-2 focus:ring-suzuki-blue/20 focus:bg-white transition-all text-sm font-medium outline-none"
-            />
+      <div className="flex-1 flex flex-col min-h-screen relative">
+        {/* Modern Header */}
+        <header className="h-24 glass sticky top-0 z-40 px-6 lg:px-10 flex justify-between items-center">
+          <div className="flex items-center gap-4 lg:gap-8">
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="relative group hidden sm:block">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-suzuki-blue transition-colors" size={18} />
+              <input 
+                type="text" 
+                placeholder="Quick search records..." 
+                className="w-64 lg:w-96 bg-slate-100/50 border-0 rounded-2xl py-3 pl-12 pr-4 focus:ring-4 focus:ring-suzuki-blue/5 focus:bg-white transition-all text-sm font-medium outline-none"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <button className="relative p-2 text-slate-400 hover:text-suzuki-blue transition-colors rounded-full hover:bg-slate-100">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-suzuki-red rounded-full ring-2 ring-white"></span>
-            </button>
-            <div className="h-8 w-px bg-slate-200 mx-2"></div>
-            <button className="flex items-center gap-3 pl-2 pr-4 py-1.5 rounded-full hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200">
-              <div className="w-9 h-9 rounded-full bg-suzuki-blue flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-sm overflow-hidden">
-                <img src="https://api.dicebear.com/7.x/initials/svg?seed=Admin" alt="avatar" />
+          <div className="flex items-center gap-4 lg:gap-6">
+            <div className="hidden md:flex items-center gap-2">
+               <button className="p-3 text-slate-400 hover:text-suzuki-blue hover:bg-white rounded-2xl transition-all shadow-sm">
+                  <Settings size={20} />
+               </button>
+               <button className="relative p-3 text-slate-400 hover:text-suzuki-blue hover:bg-white transition-all rounded-2xl shadow-sm">
+                  <Bell size={20} />
+                  <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+               </button>
+            </div>
+            <div className="w-px h-8 bg-slate-200 mx-2 hidden md:block"></div>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden lg:block">
+                <p className="text-sm font-black text-slate-900 leading-none">Fleet Manager</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Control Panel</p>
               </div>
-              <div className="text-left hidden md:block">
-                <p className="text-xs font-bold text-slate-900 leading-none">Fleet Manager</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter mt-1">Superuser Access</p>
+              <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-premium border border-slate-50">
+                 <img 
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.username || 'Admin'}&backgroundColor=004098&fontFamily=Inter&fontWeight=700`} 
+                    alt="avatar" 
+                    className="w-full h-full object-cover rounded-xl"
+                 />
               </div>
-              <ChevronDown size={14} className="text-slate-400" />
-            </button>
+            </div>
           </div>
         </header>
 
-        {/* Content Outlet */}
-        <section className="p-10 flex-1">
-          <Outlet />
-        </section>
-      </main>
+        {/* Content Viewport */}
+        <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={location.pathname}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, y: -10 }}
+               transition={{ duration: 0.3, ease: 'easeOut' }}
+             >
+               <Outlet />
+             </motion.div>
+           </AnimatePresence>
+        </main>
+
+        {/* Footer */}
+        <footer className="px-10 py-6 text-center">
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+             Pak Suzuki Motor Co. Ltd © 2026 · Proprietary Command System
+           </p>
+        </footer>
+      </div>
     </div>
   )
 }
