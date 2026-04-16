@@ -16,7 +16,7 @@ import {
   UserPlus,
   Briefcase
 } from 'lucide-react'
-import { getEmployees, createEmployee, importEmployees, getSampleExcel } from '../services/api'
+import { getEmployees, createEmployee, updateEmployee, deleteEmployee, importEmployees, getSampleExcel } from '../services/api'
 
 const Employees = () => {
   const [items, setItems] = React.useState([])
@@ -27,13 +27,15 @@ const Employees = () => {
   const [searchTerm, setSearchTerm] = React.useState('')
   const [showEnrollModal, setShowEnrollModal] = React.useState(false)
 
+  const [editingEmployee, setEditingEmployee] = React.useState(null)
+
   // Enrollment Form State
   const [newEmp, setNewEmp] = React.useState({
     name: '',
     employeeCode: '',
     gender: 'M',
     department: '',
-    route: ''
+    address: ''
   })
 
   const fetchEmployees = async (pageNum, searchVal = '') => {
@@ -66,15 +68,30 @@ const Employees = () => {
     }
   }, [page])
 
-  const handleEnroll = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault()
     try {
-      await createEmployee(newEmp)
+      if (editingEmployee) {
+        await updateEmployee(editingEmployee.id, newEmp)
+      } else {
+        await createEmployee(newEmp)
+      }
       setShowEnrollModal(false)
-      setNewEmp({ name: '', employeeCode: '', gender: 'M', department: '', route: '' })
+      setNewEmp({ name: '', employeeCode: '', gender: 'M', department: '', address: '' })
+      setEditingEmployee(null)
       fetchEmployees(page, searchTerm) 
     } catch (err) {
-      alert('Failed to enroll employee. Please verify code uniqueness.')
+      alert('Failed to save employee. Code must be unique.')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Change status of this employee?')) return
+    try {
+      await deleteEmployee(id)
+      fetchEmployees(page, searchTerm)
+    } catch (err) {
+      alert('Operation failed.')
     }
   }
 
@@ -108,27 +125,27 @@ const Employees = () => {
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6">
         <div>
           <div className="flex items-center gap-2 text-suzuki-blue font-bold text-[10px] uppercase tracking-[0.2em] mb-1.5">
-            <Briefcase size={14} /> Personnel Management
+            <Briefcase size={14} /> Staff
           </div>
-          <h2 className="text-3xl font-display font-black text-slate-900 tracking-tight">Enterprise Directory</h2>
-          <p className="text-slate-500 text-sm mt-1">Manage employee records and transport assignments.</p>
+          <h2 className="text-3xl font-display font-black text-slate-900 tracking-tight">Employees</h2>
+          <p className="text-slate-500 text-sm mt-1">Manage your staff records.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button 
             onClick={handleDownloadSample}
             className="px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl flex items-center gap-2 text-xs font-bold transition-all hover:bg-slate-50 shadow-soft"
           >
-            <Download size={16} className="text-suzuki-blue" /> Download Sample
+            <Download size={16} className="text-suzuki-blue" /> Sample File
           </button>
           <label className="px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl flex items-center gap-2 text-xs font-bold transition-all hover:bg-slate-50 shadow-soft cursor-pointer">
-            <Upload size={16} className="text-emerald-500" /> Bulk Import
+            <Upload size={16} className="text-emerald-500" /> Import
             <input type="file" className="hidden" accept=".xlsx" onChange={handleImport} />
           </label>
           <button 
-            onClick={() => setShowEnrollModal(true)}
+            onClick={() => { setEditingEmployee(null); setNewEmp({ name: '', employeeCode: '', gender: 'M', department: '', address: '' }); setShowEnrollModal(true); }}
             className="px-6 py-3 bg-suzuki-blue text-white rounded-2xl flex items-center gap-2 text-xs font-bold transition-all hover:bg-suzuki-dark shadow-xl shadow-suzuki-blue/20"
           >
-            <Plus size={18} /> Enroll Employee
+            <Plus size={18} /> Add Employee
           </button>
         </div>
       </div>
@@ -140,7 +157,7 @@ const Employees = () => {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-suzuki-blue transition-colors" size={18} />
             <input 
               type="text" 
-              placeholder="Search by name, employee code, or department..." 
+              placeholder="Search..." 
               className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-14 pr-6 focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all text-sm font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -148,7 +165,7 @@ const Employees = () => {
           </div>
           <div className="flex items-center gap-6">
             <div className="text-right">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Workforce</p>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
                <p className="text-xl font-display font-black text-slate-900">{totalCount}</p>
             </div>
             <div className="w-px h-10 bg-slate-200"></div>
@@ -163,11 +180,10 @@ const Employees = () => {
           <table className="smart-table">
             <thead>
               <tr>
-                <th>Identity</th>
+                <th>Name</th>
                 <th>Employee Code</th>
                 <th>Department</th>
-                <th>Transport Sector</th>
-                <th>Assigned Van</th>
+                <th>Van</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -180,24 +196,24 @@ const Employees = () => {
                      </td>
                   </tr>
                 ))
-              ) : items.map((emp) => (
-                <tr key={emp.id} className="group">
+               ) : items.map((emp) => (
+                <tr key={emp.id} className={`group ${emp.status === 'Inactive' ? 'opacity-50 grayscale bg-slate-50/50' : ''}`}>
                   <td>
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-2xl bg-white p-0.5 shadow-soft border border-slate-100 overflow-hidden">
-                        <img 
-                           src={`https://api.dicebear.com/7.x/initials/svg?seed=${emp.name}&backgroundColor=F8FAFC&fontFamily=Inter&fontWeight=700`} 
-                           className="w-full h-full object-cover rounded-xl" 
-                           alt="avatar"
-                        />
-                      </div>
+                    <div className="flex items-center gap-3">
                       <div>
                         <p className="text-sm font-bold text-slate-900 leading-tight">{emp.name}</p>
-                        <span className={`badge mt-1 inline-block ${
-                          emp.gender === 'F' ? 'bg-rose-50 text-rose-500' : 'bg-primary-50 text-suzuki-blue'
-                        }`}>
-                          {emp.gender === 'F' ? 'Female' : 'Male'}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className={`badge ${
+                            emp.gender === 'F' ? 'bg-rose-50 text-rose-500' : 'bg-primary-50 text-suzuki-blue'
+                          }`}>
+                            {emp.gender === 'F' ? 'Female' : 'Male'}
+                          </span>
+                          <span className={`badge ${
+                            emp.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                          }`}>
+                            {emp.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -210,11 +226,6 @@ const Employees = () => {
                     <span className="text-sm font-semibold text-slate-600">{emp.department}</span>
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
-                       <span className="text-sm text-slate-500">{emp.route || '---'}</span>
-                    </div>
-                  </td>
-                  <td>
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border w-fit ${
                        emp.assignedVan ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'
                     }`}>
@@ -223,9 +234,24 @@ const Employees = () => {
                     </div>
                   </td>
                   <td className="text-right">
-                    <button className="p-2.5 text-slate-400 hover:text-suzuki-blue hover:bg-slate-100 rounded-xl transition-all">
-                      <MoreVertical size={18} />
-                    </button>
+                    <div className="flex justify-end gap-2">
+                       <button 
+                         onClick={() => { setEditingEmployee(emp); setNewEmp(emp); setShowEnrollModal(true); }}
+                         className="p-2.5 bg-slate-50 text-slate-400 hover:text-suzuki-blue hover:bg-slate-100 rounded-xl transition-all"
+                       >
+                         <Briefcase size={18} />
+                       </button>
+                       <button 
+                         onClick={() => handleDelete(emp.id)}
+                         className={`p-2.5 rounded-xl transition-all ${
+                           emp.status === 'Active' 
+                           ? 'bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50' 
+                           : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                         }`}
+                       >
+                         <X size={18} />
+                       </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -235,7 +261,7 @@ const Employees = () => {
         
         {/* Pagination Footer */}
         <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center">
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Records Index {page} of {totalPages}</p>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Page {page} of {totalPages}</p>
            <div className="flex items-center gap-2">
               <button 
                 disabled={page === 1}
@@ -278,18 +304,18 @@ const Employees = () => {
                 <div className="p-10 bg-[#0F172A] text-white flex justify-between items-center">
                    <div>
                       <div className="flex items-center gap-2 text-suzuki-light font-black text-[10px] uppercase tracking-[0.3em] mb-2">
-                        <UserPlus size={14} /> Personnel Registry
+                        <UserPlus size={14} /> {editingEmployee ? 'Record Management' : 'Enrollment'}
                       </div>
-                      <h2 className="text-3xl font-display font-black tracking-tight">New Enrollment</h2>
+                      <h2 className="text-3xl font-display font-black tracking-tight">{editingEmployee ? 'Update Profile' : 'New Employee'}</h2>
                    </div>
                    <button onClick={() => setShowEnrollModal(false)} className="w-12 h-12 bg-white/10 hover:bg-rose-500 text-white rounded-2xl flex items-center justify-center transition-all">
                       <X size={24} />
                    </button>
                 </div>
-                <form onSubmit={handleEnroll} className="p-10 space-y-6">
+                <form onSubmit={handleSave} className="p-10 space-y-6">
                    <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Legal Full Name</label>
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Full Name</label>
                          <input 
                            required
                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all" 
@@ -299,7 +325,7 @@ const Employees = () => {
                          />
                       </div>
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Official Employee ID</label>
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Employee ID</label>
                          <input 
                            required 
                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all"
@@ -312,7 +338,7 @@ const Employees = () => {
 
                    <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Gender Identification</label>
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Gender</label>
                          <select 
                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all appearance-none"
                            value={newEmp.gender}
@@ -323,7 +349,7 @@ const Employees = () => {
                          </select>
                       </div>
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Organization Unit / Dept.</label>
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Department</label>
                          <input 
                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all"
                            placeholder="e.g. Production"
@@ -334,18 +360,18 @@ const Employees = () => {
                    </div>
 
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Designated Route / Residential Sector</label>
-                      <input 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all"
-                        value={newEmp.route}
-                        onChange={e => setNewEmp({...newEmp, route: e.target.value})}
-                        placeholder="e.g. North Karachi / Sector-11"
-                      />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Address</label>
+                        <input 
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm focus:ring-4 focus:ring-suzuki-blue/5 outline-none transition-all"
+                          placeholder="Primary residential address"
+                          value={newEmp.address}
+                          onChange={e => setNewEmp({...newEmp, address: e.target.value})}
+                        />
                    </div>
 
                    <div className="pt-4">
                       <button type="submit" className="w-full py-4 bg-suzuki-blue text-white rounded-2xl font-black text-sm shadow-xl shadow-suzuki-blue/20 hover:bg-suzuki-dark transition-all transform active:scale-[0.98]">
-                        AUTHORIZE ENROLLMENT
+                        {editingEmployee ? 'Update Records' : 'Save Employee'}
                       </button>
                    </div>
                 </form>

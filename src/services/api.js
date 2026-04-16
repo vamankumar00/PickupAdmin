@@ -20,6 +20,23 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Response Interceptor for handling expiration (Sessions)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn('[API] Unauthorized access detected. Redirecting to login...');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_refresh_token');
+      localStorage.removeItem('admin_user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth Helpers
 export const login = async (credentials) => {
   return await api.post('/Auth/login', credentials);
@@ -27,11 +44,19 @@ export const login = async (credentials) => {
 
 // Employee Helpers
 export const getEmployees = async (page = 1, pageSize = 10, search = '') => {
-  return await api.get(`/Employees?page=${page}&pageSize=${pageSize}&search=${search}`);
+  return await api.get(`/Employees/paged?page=${page}&pageSize=${pageSize}&search=${search}`);
 };
 
 export const createEmployee = async (employeeData) => {
   return await api.post('/Employees', employeeData);
+};
+
+export const updateEmployee = async (id, employeeData) => {
+  return await api.put(`/Employees/${id}`, employeeData);
+};
+
+export const deleteEmployee = async (id) => {
+  return await api.delete(`/Employees/${id}`);
 };
 
 export const importEmployees = async (file) => {
@@ -43,16 +68,16 @@ export const importEmployees = async (file) => {
 };
 
 export const getSampleExcel = async () => {
-  const response = await api.get('/Employees/sample-excel', {
-    responseType: 'blob'
-  });
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', 'Employee_Import_Sample.xlsx');
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+    const response = await api.get('/Employees/sample-excel', { responseType: 'blob' });
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Employee_Import_Sample.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
 };
 
 // Vehicle Helpers
@@ -60,13 +85,59 @@ export const getVans = async (page = 1, pageSize = 10, search = '') => {
   return await api.get(`/Vans?page=${page}&pageSize=${pageSize}&search=${search}`);
 };
 
-export const getVanManifest = async (id) => {
-  return await api.get(`/Vans/${id}/manifest`);
+export const createVan = async (vanData) => {
+  return await api.post('/Vans', vanData);
+};
+
+export const updateVan = async (id, vanData) => {
+  return await api.put(`/Vans/${id}`, vanData);
+};
+
+export const deleteVan = async (id) => {
+  return await api.delete(`/Vans/${id}`);
+};
+
+export const importVans = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await api.post('/Vans/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
+
+export const getVanSampleExcel = async () => {
+    const response = await api.get('/Vans/sample-excel', { responseType: 'blob' });
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Van_Import_Sample.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
 };
 
 // Dashboard & Stats
 export const getStats = async () => {
   return await api.get('/Dashboard/stats');
+};
+
+// Assignment Engine
+export const runAssignment = async () => {
+  return await api.post('/Assignment/run');
+};
+
+export const getAssignmentStatus = async () => {
+  return await api.get('/Assignment/status');
+};
+
+export const getVanEmployees = async (vanId) => {
+  return await api.get(`/Assignment/van/${vanId}/employees`);
+};
+
+export const getVanRoute = async (vanId) => {
+  return await api.get(`/Assignment/van/${vanId}/route`);
 };
 
 export default api;

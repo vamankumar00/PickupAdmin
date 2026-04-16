@@ -1,190 +1,221 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Users, 
   Bus, 
-  Activity, 
-  MapPin,
+  Play,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Loader,
   TrendingUp,
-  ChevronRight,
-  TrendingDown,
-  ExternalLink
+  UserCheck,
+  UserX,
+  RefreshCw
 } from 'lucide-react'
-import { getStats } from '../services/api'
+import { getStats, runAssignment, getAssignmentStatus } from '../services/api'
 
-const StatCard = ({ title, value, icon, color, trend, trendType }) => (
-  <div className="pro-card p-6">
-    <div className="flex justify-between items-start mb-6">
-      <div className={`p-3 rounded-lg bg-slate-100 ${color} shadow-sm border border-slate-200`}>
-        {icon}
-      </div>
-      <div className="text-right">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</h3>
-        <p className="text-2xl font-bold text-slate-900 mt-1 tabular-nums tracking-tight">{value}</p>
-      </div>
+const StatCard = ({ title, value, sub, icon, accent }) => (
+  <div className="pro-card p-7 flex items-center gap-5">
+    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${accent}`}>
+      {icon}
     </div>
-    <div className="flex items-center gap-2 text-[11px] font-bold">
-      <span className={`flex items-center gap-1 ${trendType === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
-        {trendType === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-        {trend}%
-      </span>
-      <span className="text-slate-400 font-medium lowercase">vs previous shift</span>
+    <div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{title}</p>
+      <p className="text-2xl font-display font-black text-slate-900 tabular-nums">{value}</p>
+      {sub && <p className="text-[11px] text-slate-400 font-medium mt-1">{sub}</p>}
     </div>
   </div>
 )
 
 const Dashboard = () => {
-  const [stats, setStats] = React.useState({
-    totalEmployees: 0,
-    totalVans: 0,
-    totalRoutes: 0,
-    syncHealth: '98.2%'
-  })
+  const [stats, setStats] = React.useState({ totalEmployees: 0, totalVans: 0, activeEmployees: 0, activeVans: 0 })
+  const [assignmentStatus, setAssignmentStatus] = React.useState({ lastRunAt: null, assignedCount: 0, unassignedCount: 0, totalActive: 0 })
   const [loading, setLoading] = React.useState(true)
+  const [running, setRunning] = React.useState(false)
+  const [runResult, setRunResult] = React.useState(null) // { success: bool, message: string }
 
-  const fetchStats = async () => {
+  const fetchAll = async () => {
     setLoading(true)
     try {
-      const response = await getStats()
-      setStats(prev => ({
-        ...prev,
-        totalEmployees: response.data.totalEmployees,
-        totalVans: response.data.totalVans,
-        totalRoutes: response.data.totalRoutes
-      }))
+      const [statsRes, statusRes] = await Promise.all([getStats(), getAssignmentStatus()])
+      setStats(statsRes.data)
+      setAssignmentStatus(statusRes.data)
     } catch (err) {
-      console.error('Failed to fetch stats', err)
+      console.error('Failed to fetch dashboard data', err)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleRunAssignment = async () => {
+    setRunning(true)
+    setRunResult(null)
+    try {
+      const res = await runAssignment()
+      const data = res.data
+      setRunResult({
+        success: true,
+        message: `Assignment complete. ${data.assignedCount} employees assigned to ${data.totalVans} vans. ${data.unassignedCount} unassigned.`
+      })
+      await fetchAll() // Refresh stats
+    } catch (err) {
+      setRunResult({
+        success: false,
+        message: err.response?.data?.message || 'Assignment failed. Check backend logs.'
+      })
+    } finally {
+      setRunning(false)
+    }
+  }
+
   React.useEffect(() => {
-    fetchStats()
+    fetchAll()
   }, [])
 
+  const lastRun = assignmentStatus.lastRunAt 
+    ? new Date(assignmentStatus.lastRunAt).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' })
+    : null
+
+  const assignmentPct = assignmentStatus.totalActive > 0
+    ? Math.round((assignmentStatus.assignedCount / assignmentStatus.totalActive) * 100)
+    : 0
+
   return (
-    <div className="space-y-8 fade-in pb-12">
-      {/* Structural Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 pb-12">
+      {/* Page Header */}
+      <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Fleet Operations Overview</h2>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Real-time summary of your workforce and transportation network.</p>
+          <div className="flex items-center gap-2 text-suzuki-blue font-bold text-[10px] uppercase tracking-[0.2em] mb-1.5">
+            <TrendingUp size={14} /> Command Center
+          </div>
+          <h2 className="text-3xl font-display font-black text-slate-900 tracking-tight">Dashboard</h2>
+          <p className="text-slate-500 text-sm mt-1">Fleet overview and assignment controls.</p>
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={fetchStats}
-            disabled={loading}
-            className="px-4 py-2 bg-suzuki-blue text-white rounded-lg text-xs font-bold hover:bg-blue-800 transition-all shadow-md active:scale-95 disabled:opacity-50"
-          >
-            {loading ? 'Refreshing...' : 'Refresh Data'}
-          </button>
-        </div>
+        <button
+          onClick={fetchAll}
+          disabled={loading}
+          className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-suzuki-blue transition-all shadow-soft disabled:opacity-50"
+        >
+          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
-      {/* Corporate Stat Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Active Employees" 
-          value={loading && !stats.totalEmployees ? '...' : stats.totalEmployees.toLocaleString()} 
-          icon={<Users className="text-suzuki-blue" size={20} />} 
-          trend="4.2" 
-          trendType="up" 
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <StatCard
+          title="Total Employees"
+          value={loading ? '...' : stats.totalEmployees.toLocaleString()}
+          sub={`${stats.activeEmployees} active`}
+          icon={<Users className="text-suzuki-blue" size={24} />}
+          accent="bg-suzuki-blue/10"
         />
-        <StatCard 
-          title="Fleet Strength" 
-          value={loading && !stats.totalVans ? '...' : `${stats.totalVans} Vans`} 
-          icon={<Bus className="text-slate-600" size={20} />} 
-          trend="1.8" 
-          trendType="up" 
+        <StatCard
+          title="Total Vans"
+          value={loading ? '...' : stats.totalVans.toLocaleString()}
+          sub={`${stats.activeVans} active`}
+          icon={<Bus className="text-emerald-600" size={24} />}
+          accent="bg-emerald-50"
         />
-        <StatCard 
-          title="Optimization Runs" 
-          value={loading && !stats.totalRoutes ? '...' : stats.totalRoutes} 
-          icon={<Activity className="text-suzuki-red" size={20} />} 
-          trend="12.5" 
-          trendType="up" 
+        <StatCard
+          title="Assigned"
+          value={loading ? '...' : assignmentStatus.assignedCount.toLocaleString()}
+          sub={lastRun ? `Last run ${lastRun}` : 'Never run'}
+          icon={<UserCheck className="text-violet-600" size={24} />}
+          accent="bg-violet-50"
         />
-        <StatCard 
-          title="Sync Health" 
-          value={stats.syncHealth} 
-          icon={<MapPin className="text-emerald-600" size={20} />} 
-          trend="0.5" 
-          trendType="down" 
+        <StatCard
+          title="Unassigned"
+          value={loading ? '...' : assignmentStatus.unassignedCount.toLocaleString()}
+          sub="Employees without a van"
+          icon={<UserX className="text-amber-600" size={24} />}
+          accent="bg-amber-50"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Chart Section */}
-        <div className="lg:col-span-2 pro-card p-8">
-          <div className="flex justify-between items-center mb-10">
-            <div>
-              <h4 className="font-bold text-slate-900 text-lg">Weekly Delivery Efficiency</h4>
-              <p className="text-xs text-slate-500 font-medium">Occupancy optimization trends.</p>
-            </div>
-            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-               <button className="px-4 py-1.5 text-[10px] font-bold text-slate-500">WEEKLY</button>
-               <button className="px-4 py-1.5 bg-white text-[10px] font-bold text-suzuki-blue rounded-md shadow-sm border border-slate-200">MONTHLY</button>
-            </div>
-          </div>
-          
-          <div className="h-72 flex items-end justify-between gap-2 px-2">
-            {/* Using a derived scale for the bars based on stats if available, otherwise fallback */}
-            {[45, 67, 85, 56, 78, 90, 45, 67, 89, 56, 78, 90, 95].map((h, i) => {
-              // Simulating slightly dynamic bars based on fleet strength
-              const dynamicH = Math.min(100, h * (stats.totalVans > 0 ? 1 : 1))
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                  <div className="relative w-full">
-                    <motion.div 
-                      initial={{ height: 0 }}
-                      animate={{ height: `${dynamicH}%` }}
-                      transition={{ delay: i * 0.03, duration: 1 }}
-                      className="w-full bg-slate-100 rounded-t-sm group-hover:bg-suzuki-blue/20 transition-all border-x border-t border-slate-200 relative overflow-hidden"
-                      style={{ height: `${dynamicH * 2.5}px` }}
-                    >
-                      <div className="absolute bottom-0 left-0 right-0 bg-suzuki-blue/40 h-1"></div>
-                    </motion.div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div className="flex justify-between mt-6 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-t border-slate-100 pt-4">
-             <span>Morning Shift</span>
-             <span></span>
-             <span>Evening Shift</span>
-          </div>
-        </div>
-
-        {/* System Activity Feed */}
-        <div className="pro-card p-8 flex flex-col">
-          <h4 className="font-bold text-slate-900 text-lg mb-8 flex justify-between items-center">
-            System Events
-            <ExternalLink size={16} className="text-slate-300" />
-          </h4>
-          <div className="space-y-6 flex-1">
-            {[
-              { text: 'Van #CS-42 Route Initiated', time: '12:04 PM', type: 'info' },
-              { text: 'Bulk Workforce Import Success', time: '11:45 AM', type: 'success' },
-              { text: 'Auth Token Revoked - Admin2', time: '10:32 AM', type: 'alert' },
-              { text: 'Backup Node Sync Completed', time: '09:12 AM', type: 'info' },
-              { text: 'Maintenance Window Defined', time: 'Yesterday', type: 'info' },
-            ].map((item, i) => (
-              <div key={i} className="flex gap-4 items-start group">
-                <div className={`mt-1 h-1.5 w-4 rounded-full ${item.type === 'success' ? 'bg-emerald-500' : item.type === 'alert' ? 'bg-rose-500' : 'bg-slate-300'}`}></div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 group-hover:text-suzuki-blue transition-colors cursor-default">{item.text}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">{item.time}</p>
-                </div>
+      {/* Assignment Engine Card */}
+      <div className="pro-card p-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-2xl bg-[#0F172A] flex items-center justify-center flex-shrink-0">
+                <Play size={20} className="text-suzuki-light" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-lg font-black text-slate-900 leading-none">Assignment Engine</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1">
+                  Clusters employees by proximity and optimizes van pickup routes.
+                </p>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            {assignmentStatus.totalActive > 0 && (
+              <div className="mt-4 max-w-md">
+                <div className="flex justify-between mb-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coverage</span>
+                  <span className="text-[10px] font-bold text-suzuki-blue">{assignmentPct}%</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${assignmentPct}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    className="h-full bg-suzuki-blue rounded-full"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2">
+                  {assignmentStatus.assignedCount} of {assignmentStatus.totalActive} active employees assigned
+                </p>
+              </div>
+            )}
+
+            {lastRun && (
+              <div className="flex items-center gap-2 mt-4 text-[11px] text-slate-400 font-medium">
+                <Clock size={12} />
+                Last run: {lastRun}
+              </div>
+            )}
           </div>
-          <button className="w-full mt-8 py-3 rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-100 hover:text-slate-700 transition-all flex items-center justify-center gap-2">
-            View System Audit
-            <ChevronRight size={14} />
-          </button>
+
+          <div className="flex-shrink-0">
+            <button
+              onClick={handleRunAssignment}
+              disabled={running}
+              className="flex items-center gap-3 px-8 py-4 bg-suzuki-blue text-white rounded-2xl font-black text-sm shadow-xl shadow-suzuki-blue/25 hover:bg-suzuki-dark transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+            >
+              {running
+                ? <><Loader size={18} className="animate-spin" /> Running...</>
+                : <><Play size={18} /> Run Assignment</>
+              }
+            </button>
+            <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">
+              Clears & replaces all assignments
+            </p>
+          </div>
         </div>
+
+        {/* Result Banner */}
+        <AnimatePresence>
+          {runResult && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`mt-6 p-4 rounded-2xl flex items-start gap-3 text-sm font-semibold ${
+                runResult.success
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                  : 'bg-rose-50 text-rose-700 border border-rose-100'
+              }`}
+            >
+              {runResult.success
+                ? <CheckCircle size={20} className="flex-shrink-0 mt-0.5" />
+                : <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+              }
+              {runResult.message}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

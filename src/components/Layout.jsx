@@ -21,9 +21,19 @@ const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
   const user = JSON.parse(localStorage.getItem('admin_user') || '{}')
 
+  const [isEmpMgmtOpen, setIsEmpMgmtOpen] = React.useState(location.pathname.startsWith('/employees'))
+
   const navItems = [
     { name: 'Overview', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Employees', path: '/employees', icon: <Users size={20} /> },
+    { 
+      name: 'Employee Management', 
+      type: 'group',
+      icon: <Users size={20} />,
+      children: [
+        { name: 'Employees', path: '/employees', icon: <Users size={18} /> },
+        // Future links like 'Departments' can go here
+      ]
+    },
     { name: 'Fleet Management', path: '/vans', icon: <Bus size={20} /> },
   ]
 
@@ -34,14 +44,15 @@ const Layout = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900 overflow-x-hidden">
+    <div className="flex h-screen bg-[#F8FAFC] font-sans text-slate-900 overflow-hidden">
       {/* Sidebar - Smart Admin Dark Skin */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-[#0F172A] transform transition-transform duration-300 ease-in-out
         lg:relative lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        flex flex-col
       `}>
-        <div className="h-full flex flex-col p-6">
-          {/* Brand Logo */}
+        {/* Brand Logo - Fixed at top of sidebar */}
+        <div className="p-6">
           <div className="flex items-center gap-4 px-2 mb-10">
             <div className="w-12 h-12 bg-suzuki-blue rounded-2xl flex items-center justify-center shadow-lg shadow-suzuki-blue/20 transform rotate-3 hover:rotate-0 transition-transform">
               <ShieldCheck size={26} className="text-white" />
@@ -51,28 +62,77 @@ const Layout = () => {
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1 block">Fleet Logistics</span>
             </div>
           </div>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-2">
+        {/* Scrollable Navigation Area */}
+        <div className="flex-1 overflow-y-auto px-6 custom-scrollbar pb-6">
+          <nav className="space-y-2">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-4 mb-4">Main Menu</p>
             {navItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                className={({ isActive }) => `
-                  flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group
-                  ${isActive 
-                    ? 'bg-suzuki-blue text-white shadow-xl shadow-suzuki-blue/30' 
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'}
-                `}
-              >
-                <span className={`${location.pathname === item.path ? 'text-white' : 'group-hover:text-suzuki-light'} transition-colors`}>
-                  {item.icon}
-                </span>
-                <span className="font-semibold text-[14px]">{item.name}</span>
-              </NavLink>
+              item.type === 'group' ? (
+                <div key={item.name} className="space-y-1">
+                   <button 
+                     onClick={() => setIsEmpMgmtOpen(!isEmpMgmtOpen)}
+                     className={`
+                       w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all group
+                       ${isEmpMgmtOpen ? 'bg-white/5 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                     `}
+                   >
+                     <div className="flex items-center gap-4">
+                        <span className={`${isEmpMgmtOpen ? 'text-suzuki-light' : 'group-hover:text-suzuki-light'} transition-colors`}>
+                          {item.icon}
+                        </span>
+                        <span className="font-semibold text-[14px]">{item.name}</span>
+                     </div>
+                     <ChevronDown size={14} className={`transition-transform duration-300 ${isEmpMgmtOpen ? 'rotate-180' : ''}`} />
+                   </button>
+                   
+                   <AnimatePresence>
+                     {isEmpMgmtOpen && (
+                       <motion.div 
+                         initial={{ height: 0, opacity: 0 }}
+                         animate={{ height: 'auto', opacity: 1 }}
+                         exit={{ height: 0, opacity: 0 }}
+                         className="overflow-hidden pl-4 space-y-1"
+                       >
+                         {item.children.map(child => (
+                            <NavLink
+                              key={child.name}
+                              to={child.path}
+                              className={({ isActive }) => `
+                                flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group
+                                ${isActive 
+                                  ? 'bg-suzuki-blue text-white shadow-xl shadow-suzuki-blue/20' 
+                                  : 'text-slate-500 hover:text-white hover:bg-white/5'}
+                              `}
+                            >
+                              <span className="font-semibold text-[13px]">{child.name}</span>
+                            </NavLink>
+                         ))}
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+                </div>
+              ) : (
+                <NavLink
+                  key={item.name}
+                  to={item.path}
+                  className={({ isActive }) => `
+                    flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group
+                    ${isActive 
+                      ? 'bg-suzuki-blue text-white shadow-xl shadow-suzuki-blue/30' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                  `}
+                >
+                  <span className={`${location.pathname === item.path ? 'text-white' : 'group-hover:text-suzuki-light'} transition-colors`}>
+                    {item.icon}
+                  </span>
+                  <span className="font-semibold text-[14px]">{item.name}</span>
+                </NavLink>
+              )
             ))}
           </nav>
+        </div>
 
           {/* Sidebar Footer */}
           <div className="mt-auto pt-6 border-t border-slate-800">
@@ -95,78 +155,33 @@ const Layout = () => {
               Sign Out
             </button>
           </div>
-        </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen relative">
-        {/* Modern Header */}
-        <header className="h-24 glass sticky top-0 z-40 px-6 lg:px-10 flex justify-between items-center">
-          <div className="flex items-center gap-4 lg:gap-8">
-            <button 
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl"
-            >
-              <Menu size={24} />
-            </button>
-            <div className="relative group hidden sm:block">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-suzuki-blue transition-colors" size={18} />
-              <input 
-                type="text" 
-                placeholder="Quick search records..." 
-                className="w-64 lg:w-96 bg-slate-100/50 border-0 rounded-2xl py-3 pl-12 pr-4 focus:ring-4 focus:ring-suzuki-blue/5 focus:bg-white transition-all text-sm font-medium outline-none"
-              />
-            </div>
-          </div>
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Content Viewport - No header, starts from top */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <main className="p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+             <AnimatePresence mode="wait">
+               <motion.div
+                 key={location.pathname}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -10 }}
+                 transition={{ duration: 0.3, ease: 'easeOut' }}
+               >
+                 <Outlet />
+               </motion.div>
+             </AnimatePresence>
+          </main>
 
-          <div className="flex items-center gap-4 lg:gap-6">
-            <div className="hidden md:flex items-center gap-2">
-               <button className="p-3 text-slate-400 hover:text-suzuki-blue hover:bg-white rounded-2xl transition-all shadow-sm">
-                  <Settings size={20} />
-               </button>
-               <button className="relative p-3 text-slate-400 hover:text-suzuki-blue hover:bg-white transition-all rounded-2xl shadow-sm">
-                  <Bell size={20} />
-                  <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
-               </button>
-            </div>
-            <div className="w-px h-8 bg-slate-200 mx-2 hidden md:block"></div>
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden lg:block">
-                <p className="text-sm font-black text-slate-900 leading-none">Fleet Manager</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Control Panel</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-premium border border-slate-50">
-                 <img 
-                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.username || 'Admin'}&backgroundColor=004098&fontFamily=Inter&fontWeight=700`} 
-                    alt="avatar" 
-                    className="w-full h-full object-cover rounded-xl"
-                 />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Viewport */}
-        <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-           <AnimatePresence mode="wait">
-             <motion.div
-               key={location.pathname}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               exit={{ opacity: 0, y: -10 }}
-               transition={{ duration: 0.3, ease: 'easeOut' }}
-             >
-               <Outlet />
-             </motion.div>
-           </AnimatePresence>
-        </main>
-
-        {/* Footer */}
-        <footer className="px-10 py-6 text-center">
-           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
-             Pak Suzuki Motor Co. Ltd © 2026 · Proprietary Command System
-           </p>
-        </footer>
+          {/* Footer - Inside scroll area so it moves with content */}
+          <footer className="px-10 py-8 text-center border-t border-slate-100 bg-slate-50/30">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+               Pak Suzuki Motor Co. Ltd © 2026 · Proprietary Command System
+             </p>
+          </footer>
+        </div>
       </div>
     </div>
   )

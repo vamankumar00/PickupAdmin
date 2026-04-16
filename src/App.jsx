@@ -8,8 +8,13 @@ import Login from './pages/Login'
 
 const RequireAuth = ({ children }) => {
   const token = localStorage.getItem('admin_token')
-  console.log('[RequireAuth] Validating token state...', { hasToken: !!token })
-  if (!token) return <Navigate to="/login" replace />
+  const location = window.location.pathname
+  
+  if (!token) {
+    console.log('[Auth] No token found. Redirecting to login.')
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+  
   return children
 }
 
