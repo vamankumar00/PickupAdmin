@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
-import Vans from './pages/Vans'
 import Login from './pages/Login'
 
 const RequireAuth = ({ children }) => {
@@ -25,7 +24,6 @@ const App = () => {
       <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<Dashboard />} />
         <Route path="employees" element={<Employees />} />
-        <Route path="vans" element={<Vans />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

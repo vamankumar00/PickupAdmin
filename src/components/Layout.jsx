@@ -27,14 +27,9 @@ const Layout = () => {
     { name: 'Overview', path: '/', icon: <LayoutDashboard size={20} /> },
     { 
       name: 'Employee Management', 
-      type: 'group',
-      icon: <Users size={20} />,
-      children: [
-        { name: 'Employees', path: '/employees', icon: <Users size={18} /> },
-        // Future links like 'Departments' can go here
-      ]
-    },
-    { name: 'Fleet Management', path: '/vans', icon: <Bus size={20} /> },
+      path: '/employees',
+      icon: <Users size={20} />
+    }
   ]
 
   const handleLogout = () => {

@@ -10,13 +10,27 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Upload,
   Bus,
   X,
+  Check,
   UserPlus,
-  Briefcase
+  Briefcase,
+  Pen,
+  MapPin
 } from 'lucide-react'
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, importEmployees, getSampleExcel } from '../services/api'
+import { MapContainer, TileLayer, Marker } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+import icon from 'leaflet/dist/images/marker-icon.png'
+import iconShadow from 'leaflet/dist/images/marker-shadow.png'
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconAnchor: [12, 41]
+})
+L.Marker.prototype.options.icon = DefaultIcon
 
 const Employees = () => {
   const [items, setItems] = React.useState([])
@@ -26,6 +40,8 @@ const Employees = () => {
   const [loading, setLoading] = React.useState(true)
   const [searchTerm, setSearchTerm] = React.useState('')
   const [showEnrollModal, setShowEnrollModal] = React.useState(false)
+  const [showMapModal, setShowMapModal] = React.useState(false)
+  const [selectedLocation, setSelectedLocation] = React.useState({ lat: 0, lng: 0, name: '' })
 
   const [editingEmployee, setEditingEmployee] = React.useState(null)
 
@@ -138,7 +154,7 @@ const Employees = () => {
             <Download size={16} className="text-suzuki-blue" /> Sample File
           </button>
           <label className="px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl flex items-center gap-2 text-xs font-bold transition-all hover:bg-slate-50 shadow-soft cursor-pointer">
-            <Upload size={16} className="text-emerald-500" /> Import
+            <Download size={16} className="text-emerald-500" /> Import
             <input type="file" className="hidden" accept=".xlsx" onChange={handleImport} />
           </label>
           <button 
@@ -180,10 +196,9 @@ const Employees = () => {
           <table className="smart-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Employee Code</th>
-                <th>Department</th>
-                <th>Van</th>
+                <th className="text-left">Name</th>
+                <th className="text-left">Employee Code</th>
+                <th className="text-left">Department</th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
@@ -225,21 +240,26 @@ const Employees = () => {
                   <td>
                     <span className="text-sm font-semibold text-slate-600">{emp.department}</span>
                   </td>
-                  <td>
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border w-fit ${
-                       emp.assignedVan ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'
-                    }`}>
-                       <Bus size={12} />
-                       <span className="text-[10px] font-black uppercase tracking-tighter">{emp.assignedVan || 'Pending'}</span>
-                    </div>
-                  </td>
                   <td className="text-right">
                     <div className="flex justify-end gap-2">
+                       <button 
+                         onClick={() => {
+                           if (!emp.lat && !emp.lng) {
+                             alert('No location data available for this employee.');
+                           } else {
+                             setSelectedLocation({ lat: emp.lat, lng: emp.lng, name: emp.name });
+                             setShowMapModal(true);
+                           }
+                         }}
+                         className="p-2.5 bg-slate-50 text-slate-400 hover:text-suzuki-blue hover:bg-slate-100 rounded-xl transition-all"
+                       >
+                         <MapPin size={18} />
+                       </button>
                        <button 
                          onClick={() => { setEditingEmployee(emp); setNewEmp(emp); setShowEnrollModal(true); }}
                          className="p-2.5 bg-slate-50 text-slate-400 hover:text-suzuki-blue hover:bg-slate-100 rounded-xl transition-all"
                        >
-                         <Briefcase size={18} />
+                         <Pen size={18} />
                        </button>
                        <button 
                          onClick={() => handleDelete(emp.id)}
@@ -249,7 +269,7 @@ const Employees = () => {
                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                          }`}
                        >
-                         <X size={18} />
+                         {emp.status === 'Active' ? <X size={18} /> : <Check size={18} />}
                        </button>
                     </div>
                   </td>
@@ -375,6 +395,45 @@ const Employees = () => {
                       </button>
                    </div>
                 </form>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Map Modal */}
+      <AnimatePresence>
+        {showMapModal && (
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+               onClick={() => setShowMapModal(false)}
+             />
+             <motion.div 
+               initial={{ y: 20, opacity: 0, scale: 0.95 }}
+               animate={{ y: 0, opacity: 1, scale: 1 }}
+               exit={{ y: 20, opacity: 0, scale: 0.95 }}
+               className="relative w-full max-w-3xl bg-white rounded-[2.5rem] shadow-glass overflow-hidden"
+             >
+                <div className="p-8 bg-[#0F172A] text-white flex justify-between items-center">
+                   <div>
+                      <div className="flex items-center gap-2 text-suzuki-light font-black text-[10px] uppercase tracking-[0.3em] mb-2">
+                        <MapPin size={14} /> Location Data
+                      </div>
+                      <h2 className="text-2xl font-display font-black tracking-tight">{selectedLocation.name}</h2>
+                   </div>
+                   <button onClick={() => setShowMapModal(false)} className="w-10 h-10 bg-white/10 hover:bg-rose-500 text-white rounded-xl flex items-center justify-center transition-all">
+                      <X size={20} />
+                   </button>
+                </div>
+                <div className="h-[500px] w-full">
+                   <MapContainer center={[selectedLocation.lat, selectedLocation.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+                     <Marker position={[selectedLocation.lat, selectedLocation.lng]} />
+                   </MapContainer>
+                </div>
              </motion.div>
           </div>
         )}

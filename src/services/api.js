@@ -80,64 +80,9 @@ export const getSampleExcel = async () => {
     window.URL.revokeObjectURL(url);
 };
 
-// Vehicle Helpers
-export const getVans = async (page = 1, pageSize = 10, search = '') => {
-  return await api.get(`/Vans?page=${page}&pageSize=${pageSize}&search=${search}`);
-};
-
-export const createVan = async (vanData) => {
-  return await api.post('/Vans', vanData);
-};
-
-export const updateVan = async (id, vanData) => {
-  return await api.put(`/Vans/${id}`, vanData);
-};
-
-export const deleteVan = async (id) => {
-  return await api.delete(`/Vans/${id}`);
-};
-
-export const importVans = async (file) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  return await api.post('/Vans/import', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
-};
-
-export const getVanSampleExcel = async () => {
-    const response = await api.get('/Vans/sample-excel', { responseType: 'blob' });
-    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'Van_Import_Sample.xlsx');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-};
-
 // Dashboard & Stats
 export const getStats = async () => {
   return await api.get('/Dashboard/stats');
-};
-
-// Assignment Engine
-export const runAssignment = async () => {
-  return await api.post('/Assignment/run');
-};
-
-export const getAssignmentStatus = async () => {
-  return await api.get('/Assignment/status');
-};
-
-export const getVanEmployees = async (vanId) => {
-  return await api.get(`/Assignment/van/${vanId}/employees`);
-};
-
-export const getVanRoute = async (vanId) => {
-  return await api.get(`/Assignment/van/${vanId}/route`);
 };
 
 export default api;
